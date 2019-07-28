@@ -8,11 +8,13 @@
         <svg width=300 height=300></svg>
         <script>
             async function init() {
-                const data =  await d3.json("http://localhost:8081/USMassShootings.json",
-                    function (error, json) {
-                        if(error) return console.warn(error);
-                    }
-                );
+                 loadJSON("USMassShootings.json", function(response) {
+                  // Parsing JSON string into object
+                    var USMassShootings_JSON = JSON.parse(response);
+                 });
+                }
+
+                var data = USMassShootings_JSON;
                 var logScale = d3.scaleLog()
                     .domain([10, 150])
                     .range([0,200]);

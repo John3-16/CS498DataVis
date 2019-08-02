@@ -6,7 +6,6 @@ function unique(data) {
     return Object.keys(temp);
 }//unique()
 
-
 $(document).ready(function() {
     $("#retrieve-resources").click(function() {
         var displayResources = $("#display-resources");
@@ -21,7 +20,7 @@ $(document).ready(function() {
                 .domain([10, 150])
                 .range([0,200]);
             var svg = d3.select("svg");
-            var raw = usms.RawDataByCase;
+            var raw = worldms.Appendix_restOfTheWorld;
             var years = unique(raw);
             console.log(years);
         

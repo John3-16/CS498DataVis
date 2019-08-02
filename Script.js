@@ -1,7 +1,7 @@
 function unique(data) {
     temp = {}
     for (var i=0; i < data.length; i++) {
-        temp[data[i].Year] = 1;
+        temp[new Date(data[i].Date).getFullYear()] = 1;
     }
     return Object.keys(temp);
 }//unique()

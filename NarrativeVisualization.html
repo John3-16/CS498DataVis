@@ -1,25 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+<meta charset="utf-8">
 <head>
-    <meta charset="UTF-8">
-    <title>Narrative Visualization Assignment</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
-          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
-          crossorigin="anonymous">
-</head>
-<body class="col-md-12">
-    <h1>CS498 DataVis - 7-3-3 Assignment by Richard Wheeler</h1>
-    <div id="display-resources">
-        <p>To begin Narrative Visualization
-            <a href="http://api.jquery.com/jquery.ajax/NarrativeVisualization.html"></a>
-        </p>   <a href="#" class="btn btn-primary" id="retrieve-resources">Click button</a>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="script.js"></script>
+    <title>CS498 DataVis - 7-3-3 Assignment by Richard Wheeler</title>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+
     <script src='https://d3js.org/d3.v5.min.js'></script>
     <script src="https://d3js.org/d3-request.v1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.21/jquery-ui.min.js"></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.3.2/d3-annotation.min.js'></script>
-    <style> circle {fill: lightblue; stroke: black;} </style>
-    <svg width=300 height=300></svg>
+
+    <script src="script.js"></script>
+
+</head>
+<body>
+    <h2>Narrative Visualization</h2>
+    <h3>Media Lies about Mass Shootings</h3>
+    <div id="console"></div>
+    <div id="linechart"></div>
 </body>
 </html>

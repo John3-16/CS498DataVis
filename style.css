@@ -1,0 +1,30 @@
+body { font: 14px sans-serif; text-align: center; }
+.line {
+    fill: none;
+    stroke: black;
+    stroke-width: 3;
+}
+.axis.path{
+    stroke: black;
+    fill: none;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+.tick line{
+    stroke: black;
+    stroke-width: 1px;
+}
+.legend{
+    font-size: 16px;
+    font-weight: bold;
+    text-anchor: middle;
+}
+#console {
+    background-color: #CCFFE6;
+    font-size: 12px;
+    margin: 2px 2px 2px 2px;
+    padding: 4px 4px 4px 4px;
+    width: 95%;
+    float: left;
+    text-align: left;
+}

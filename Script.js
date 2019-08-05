@@ -1,67 +1,259 @@
-var displayResources = $("#display-resources");
-var massdata;
+const sumPropertyValue = (items, prop) => items.reduce((a, b) => a + b[prop], 0);
+
+let margin = {top: 50, right: 50, bottom: 70, left: 70}
+    , width = 800 - margin.left - margin.right
+    , height = 600 - margin.top - margin.bottom;
+
+let legendSpace = width / 2;
+
+let fmtDate = d3.timeParse("%Y-%m-%d");
+
+let massdata;
+let activeDataType;
 
 function unique(data) {
-    let temp = [] // object definition
+    let temp = []
     for (let i=0; i < data.length; i++) {
         let row = data[i];
-        let year = new Date(row.Date).getFullYear();
-        let idx = temp.findIndex(o=> o.Year === year);
+        let Sources = [row.SomeSourcesThatWeConsulted];
+        if (row.Empty != null) Sources.push(row.Empty);
+        if (row.Empty2 != null) Sources.push(row.Empty2);
+        let Attack = { Country: row.Country, State: row.State, City: row.City,  Killed: row.Killed, Type: row.Type,
+            Perpetrator: row.Perpetrator, Source: row.CaseSource, Sources: Sources, Infomation: row.InfomationOnAttack,
+            set Date(value){
+                this._year = new Date(value).getFullYear();
+                this._date = value;},
+            get Date() {return this._date;},
+            get Year() {return this._year;}
+        };
+        Attack.Date = row.Date;
+        
+        let idx = temp.findIndex(o=> o.Year === Attack.Year);
         if (idx != -1) {
-            temp[idx].attacks++;
+            temp[idx].Attacks.push(Attack);
         } else {
-            let Year = {Year: year, attacks: 1};
-            let Attack = {Date: row.Date, Country: row.Country, State: row.State, City: row.City,  Killed: row.Killed,
-                          Perpetrator: row.Perpetrator, Type: row.Type, Infomation: row.InfomationOnAttack};
+            let Year = {Year: Attack.Year, Attacks: [Attack],
+                get USAttackData(){return this.Attacks.filter(function (el) {return el.Country == "USA";});},
+                get NonUSAttackData(){return this.Attacks.filter(function (el) {return el.Country != "USA";});},
+                get USAttacks(){ return this.USAttackData.length; },
+                get NonUSAttacks(){ return this.NonUSAttackData.length;},
+                get USKilled(){return sumPropertyValue(this.USAttackData,"Killed");},
+                get NonUSKilled(){return sumPropertyValue(this.NonUSAttackData,"Killed");}
+            };
             temp.push(Year);
         }
     }
     return temp;
 }//unique()
 
-function getMaxValue(darray, ele) {
-    let values = [];
-    for(let i=0; i < darray.length; i++) {
-        values.push(Math.ceil(parseFloat(darray[i][""+ele])));
-    }
-    values.sort(function (a,b) {return a-b})
-    return values[values.length-1]
-}//getMaxValue()
+function matchColumns(data, columnnames) {
+    let temp=[];
+    for (let i=0; i < data.length; i++) {
+        let row = data[i];
+        let locs = row.Location.split(",");
+        temp.push({
+            [columnnames[0]]: row.Source,
+            [columnnames[1]]: "USA",
+            [columnnames[2]]: locs[0],
+            [columnnames[3]]: locs[1],
+            [columnnames[4]]: row.Date,
+            [columnnames[5]]: null,
+            [columnnames[6]]: row.Killed,
+            [columnnames[7]]: row.Wounded,
+            [columnnames[8]]: row.Perpetrator,
+            [columnnames[9]]: "MassShooting",
+            [columnnames[10]]: row.InformationOnAttach,
+            [columnnames[11]]: row.SomeSourcesThatWeConsulted,
+            [columnnames[12]]: null,
+            [columnnames[13]]: null
+        });
+    }//For LOOP
+    return unique(temp);
+}
 
-function getJSON(url) {
-    return get(url).then(JSON.parse(response));
+function combine(data, addthis) {
+    for(let i=0; i<data.length; i++) {
+        for(let z=0; z<addthis[i].Attacks.length; z++) {
+            data[i].Attacks.push(addthis[i].Attacks[z]);
+        }//Inner Attacks LOOP
+    };//Outer Years LOOP
+    Object.defineProperty(data, "Years",{
+        get() {return this.map(o => o.Year)}
+    });
+    Object.defineProperty(data, "USAttacks",{
+        get() {return this.map(o => o.USAttacks)}
+    });
+    Object.defineProperty(data, "NonUSAttacks",{
+        get() {return this.map(o => o.NonUSAttacks)}
+    });
+    Object.defineProperty(data, "USKilled",{
+        get() {return this.map(o => o.USKilled)}
+    });
+    Object.defineProperty(data, "NonUSKilled",{
+        get() {return this.map(o => o.NonUSKilled)}
+    });
+    return data;
 }//getJSON()
 
+function onlyUnique(value, index, self) {
+    return self.indexOf(value) === index;
+}
+
+function buildConsole() {
+    let html = "";
+    let datatypes = ["Attacks", "Killed"]
+    
+    html += "<div id=\"datatype-selector\" class=\"console-element\">";
+    for (let i = 0; i < datatypes.length; i++) {
+        html += "<div style=\"width: 150px; float: left;\">";
+        html += "<input name=\"datatypes\" id=\"datatype-selector-" + datatypes[i] + "\" type=\"radio\" ";
+        if (i == 0) {
+            html += "checked"; // set the first datatype to checked to provide some default data for the graphs
+        }
+        html += " value=\"" + datatypes[i] + "\" /> ";
+        html += datatypes[i];
+        html += "</div>";
+    }
+    html += "</div>";
+    
+    $('#console').html(html);
+}//buildConsole()
+
+function getDataTypeValues() {
+    let datatypes = $("input:radio[name=datatypes]:checked");
+    let datatype;
+    $.each(datatypes, function() {
+        datatype = $(this).val()
+    })
+    
+    activeDataType = datatype;
+    let us_yValues, nonUS_yValues;
+    switch (datatype) {
+        case "Attacks":
+            us_yValues = massdata.USAttacks;
+            nonUS_yValues = massdata.NonUSAttacks;
+            break;
+        case "Killed":
+            us_yValues = massdata.USKilled;
+            nonUS_yValues = massdata.NonUSKilled;
+            break;
+    }//switch BLOCK
+    return {us: us_yValues, nonUS: nonUS_yValues};
+}//getDataTypeValues()
+
+function buildChart(yValues) {
+    let color = d3.scaleOrdinal(d3.schemeCategory10);
+    let years = massdata.Years.map(y => y + "-1-1");
+    let dates = years.map(d => fmtDate(d));
+    
+    let datasets = [
+        { label: "US Dataset", data: dates.map(function(d,i) {
+            return {"x": d, "y": yValues.us[i]};}) },
+        { label: "NonUS Dataset", data: dates.map(function(d,i) {
+                return { "x": d, "y": yValues.nonUS[i]};}) }];
+
+    color.domain(datasets.map(o => o.label));
+    let sdata = color.domain().map(function(name) {
+        return { name: name, data: datasets.filter(function (el) {return el.label == name;})[0].data};
+    });
+    // let data = datasets[0];
+    let yvalues = datasets[0].data.map(o=>o.y).concat(datasets[1].data.map(o=>o.y));
+    let y_max = Math.max.apply(Math, yvalues);
+    let y_min = Math.min.apply(Math, yvalues);
+    let y_labels = yvalues.filter(onlyUnique);
+    let x_max = dates[dates.length-1];
+    let x_min = dates[0];
+    
+    let xScale = d3.scaleTime()
+        .domain([x_min,x_max])
+        .range([0, width]);
+    
+    let yScale = d3.scaleLinear()
+        .domain([0, y_max])
+        .range([height, 0]);
+    
+    let xAxis = d3.axisBottom(xScale).ticks(d3.timeYear.every(1));
+    let yAxis = d3.axisLeft(yScale).ticks(20);
+
+    // line generator
+    let line = d3.line()
+        .x( function(d) {return xScale(d.x);}) // set the x values for the line generator
+        .y( function(d) {return yScale(d.y);}) // set the y values for the line generator
+        .curve(d3.curveMonotoneX); // apply smoothing to the line
+    
+    let svg = d3.select("#linechart").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis);
+    svg.append("text")
+        .attr("class", "axis-label")
+        .attr("text-anchor", "end")
+        .attr("y", 6)
+        .attr("dy", "-3.4em")
+        .attr("transform", "rotate(-90)")
+        .text('Yearly '+activeDataType);
+
+    var attacks = svg.selectAll(".attacks")
+        .data(sdata)
+        .enter().append("g")
+        .attr("class", "attacks");
+    attacks.append("path")
+        .attr("class", "line")
+        .attr("id", function(d,i) { return "id"+i; })
+        .attr("d", function(d) {
+            return line(d.data); })
+        .style("stroke", function(d) { return color(d.name); });
+    attacks.append("text")
+        .attr("x", function(d,i) {return (legendSpace/2) + i*legendSpace;})
+        .attr("y", height +(margin.bottom/2)+2)
+        .attr("class", "legend")
+        .style("fill", function(d) { return color(d.name); })
+        .text(function(d) {return d.name;});
+}//buildChart()
+
+function resetCharts(datatype) {
+    d3.select("#linechart").html = ""
+}
+
 function getData() {
+    $.ajaxSetup({cache:false});
     let usmsajax = $.ajax({type: "GET", url: "https://john3-16.github.io/CS498DataVis/USMassShooting.json"});
     let worldmsajax = $.ajax({type: "GET", url: "https://john3-16.github.io/CS498DataVis/WorldMassShooting.json"});
     
     function success(resp1, resp2) {
         let usms = resp1[0];
         let worldms = resp2[0];
-        displayResources.text("Data loaded successfully...");
         
         massdata = unique(worldms.Appendix_restOfTheWorld);
+        let usmassdata = matchColumns(worldms.Appendix_us, Object.getOwnPropertyNames(worldms.Appendix_restOfTheWorld[0]));
+        massdata = combine(massdata, usmassdata);
+        buildConsole();
+        let yValues = getDataTypeValues()
+        buildChart(yValues);
     };//success()
     
     function failure(response1, response2) {
-        displayResources.text("Something is wrong with loading the data ");
+        console.log("Something is wrong with loading the data ");
     };//failure()
     
     $.when( usmsajax, worldmsajax )
         .then( success, failure );
 }//getData()
 
+getData();
+
 $(document).ready(function() {
-    displayResources.text("Loading data from JSON sources...");
-    var data = getData();
-    console.log(data);
-    
-    var logScale = d3.scaleLog()
-        .domain([10, 150])
-        .range([0,200]);
-    var svg = d3.select("svg");
-    
-    $("#retrieve-resources").click(function() {
-    });//click function
-});//document ready function
+    let ans = $('input[name=datatypes]:checked').val();
+});
+
+
+
